@@ -642,6 +642,30 @@ killed(struct proc *p)
   return k;
 }
 
+int
+pgaccess(uint64 base, int len, uint64 mask)
+{
+  int i;
+  uint64 m = 0;
+  struct proc *p = myproc();
+  pte_t *pte;
+
+  if(len < 0 || len >= 64)
+    return -1;
+
+  for(i = 0; i < len; i++){
+    pte = walk(p->pagetable, base + i * PGSIZE, 0);
+    if(*pte & PTE_A)
+      m |= (1 << i);
+    *pte &= ~PTE_A;
+  }
+
+  if(copyout(p->pagetable, mask, (void*)&m, sizeof(m)) < 0)
+    return -1;
+
+  return 0;
+}
+
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
